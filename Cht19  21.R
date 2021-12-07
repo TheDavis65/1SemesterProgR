@@ -819,7 +819,7 @@ library(purrr)
 # fitting a linear model to each group in the mtcars dataset:
 models <- mtcars %>% 
   split(.$cyl) %>%  
-  purrr::map(function(df) lm(mpg ~ wt, data = df))
+  purrr::map(function(fff) lm(mpg ~ wt, data = fff))
 
 models
 #the split fct makes the grouping.
@@ -859,7 +859,7 @@ x %>% purrr::map_dbl(2)
 
 
 #Base R
-#lapply(), vapply(), sapply() 
+# apply(),lapply(), vapply(), sapply() 
 
 
 
