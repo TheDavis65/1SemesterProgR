@@ -1,3 +1,14 @@
+pacman::p_load("tidyverse", "magrittr", "nycflights13", "gapminder",
+               "Lahman", "maps", "lubridate", "pryr", "hms", "hexbin",
+               "feather", "htmlwidgets", "broom", "pander", "modelr",
+               "XML", "httr", "jsonlite", "lubridate", "microbenchmark",
+               "splines", "ISLR", "MASS", "testthat", "leaps", "caret",
+               "RSQLite", "class", "babynames", "nasaweather",
+               "fueleconomy", "viridis", "stats")
+
+
+
+
 # Opgaver:
 # 3.2.4. (1.-5.)
 # 1

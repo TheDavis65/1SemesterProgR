@@ -1,0 +1,621 @@
+---
+title: "Exercises 02"
+author: "Bjarne Taulo Sørensen"
+date: "Week 5 and 6 - 2022"
+output: word_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<br />\    
+  
+  
+<!-- Your own secret notes can be written here between the HTML signs -->   
+
+
+
+```{r bibliotek, eval=TRUE, include=TRUE}
+
+if (!dir.exists("data")) dir.create("data")
+
+# Gem dine datasæt i dette bibliotek
+
+```
+
+
+```{r pacman, eval=TRUE, include=TRUE}
+
+pacman::p_load("tidyverse", "magrittr", "nycflights13", "gapminder",
+               "Lahman", "maps", "lubridate", "pryr", "hms", "hexbin",
+               "feather", "htmlwidgets", "broom", "pander", "modelr",
+               "XML", "httr", "jsonlite", "lubridate", "microbenchmark",
+               "splines", "ISLR2", "MASS", "testthat", "leaps", "caret",
+               "RSQLite", "class", "babynames", "nasaweather",
+               "fueleconomy", "viridis", "boot", "rvest", "stringi", 
+               "readxl", "haven")
+
+```
+
+
+
+<br />\   
+
+<!-- Your own secret notes can be written here between the HTML signs -->
+
+
+# Problem 1 - Do not solve this one
+
+Get this data:
+
+```{r problem 1, eval=FALSE, include=TRUE}
+
+my_url01 <- "http://tiny.cc/dcf/houses-for-sale.csv"
+
+```
+
+Are the variables in the right format?
+
+```{r problem 1 solution, eval=FALSE, include=FALSE}
+
+my_url01 <- "http://tiny.cc/dcf/houses-for-sale.csv"
+houses <- readr::read_csv(my_url01) 
+str(houses) # Yes
+
+# devtools::install_github("ekstroem/dataReporter")
+library(dataReporter)
+
+makeDataReport(data = houses)
+
+
+```
+
+Remember to make comments.
+
+
+# Problem 2
+
+Now, get these data:
+
+```{r problem 2, eval=FALSE, include=TRUE}
+
+my_url02 <- "https://perso.telecom-paristech.fr/eagan/class/igr204/data/factbook.csv"
+
+```
+Remember to make comments.
+
+```{r problem 2 solution, eval=FALSE, include=FALSE}
+
+countries01 <- readr::read_csv2(my_url02, trim_ws = TRUE) # Does this code work on your computer?
+
+countries02 <- read_delim(my_url02,";", escape_double = FALSE, 
+                        locale = locale(decimal_mark = "."), 
+                         trim_ws = TRUE) # Is this working?
+
+```
+
+The second line is not needed, i.e. where Country = "String", so please, delete it. "Skip = 1"
+
+Make sure that the variables are in a proper format! 
+
+Anything strange about the names of the variables?
+
+
+
+```{r problem 2 solution a, eval=FALSE, include=FALSE}
+
+# saveRDS(countries01, file = "data/countries01.Rda")
+
+countries01 <- readRDS(file = "data/countries01.Rda")
+
+#1 if data file is located on the internet:
+str(countries02)
+
+?read_csv2
+headers <- read_csv2(my_url02, col_names = FALSE, n_max = 1)
+countries03 <- read_delim(my_url02, delim = ";", skip = 2, col_names = FALSE) 
+colnames(countries03) = headers
+
+str(countries03)
+
+# if data file from Moodle in RDA format:
+
+countries_tidyverse <- readRDS(file = "data/countries01.Rda") %>%
+  filter(Country != "String") %>% 
+   mutate(
+  `Area(sq km)` = as.double(`Area(sq km)`),
+  `Birth rate(births/1000 population)` = as.double(`Birth rate(births/1000 population)`))
+
+countries_tidyverse <- readRDS(file = "data/countries01.Rda") %>%
+  filter(Country != "String") %>% 
+   mutate(
+  `Area(sq km)` = as.double(`Area(sq km)`),
+  `Birth rate(births/1000 population)` = as.double(`Birth rate(births/1000 population)`))
+  #ETC - can do this for all variables that we want to parse to a double format.
+  #You can also use parse_double instead of as.double
+  #We are going to make this smarter later on - map and apply functions - looping over the elements of the data frame. 
+```
+
+# Problem 3
+
+Remember to make comments.
+
+Get (read) all the tables from: 
+
+```{r problem 3, eval=FALSE, include=TRUE}
+my_url03 <- "http://en.wikipedia.org/wiki/Mile_run_world_record_progression"
+
+```
+
+Get help from *Google*!  
+
+*Hint*: **read_html** and **html_nodes("table")**  
+
+Let's have a look at table 2.
+
+```{r problem 3 solution, eval=FALSE, include=FALSE}
+my_url03 <- "http://en.wikipedia.org/wiki/Mile_run_world_record_progression"
+?readr
+
+tables01 <- my_url03 %>% 
+  read_html() %>% 
+    html_nodes("table") # We end up with a list
+
+length(tables01)
+
+tables01a <- html_table(tables01[[2]]) %>% 
+  View()
+```
+
+
+# Problem 4
+
+
+Remember to make comments.
+  
+Here you can find all-time top-25 marathoners - women/men:  
+  
+```{r problem 4, eval=TRUE, include=TRUE}
+
+my_url04 <- "https://en.wikipedia.org/wiki/Marathon"
+
+```
+Please make two data sets, one for women and one for men showing top-25 marathoners:
+
+```{r problem 4 solution, eval=FALSE, include=FALSE}
+
+tables02 <- my_url04 %>% 
+  read_html() %>% 
+   html_nodes("table")
+
+View(tables02)
+length(tables02)
+
+marathon_women <- html_table(tables02[[6]], fill = TRUE) %>% 
+  View()
+marathon_men <- html_table(tables02[[5]], fill = TRUE) %>% 
+  View() 
+```
+
+# Problem 5
+
+Remember to make comments.
+
+Import **file01**, **file02**, **file03**, **file04**, **file05**, and **file06**
+
+```{r problem 5 solution, eval=FALSE, include=FALSE}
+
+file01 <- read_csv("data/file01.csv")
+str(file01)
+                   
+file01 <- read_csv("data/file01.csv", col_types = cols(
+  DOB = col_date(format = "%Y-%m-%d"), 
+   Died = col_date(format = "%Y-%m-%d")), 
+                   locale = locale()
+                                                           )
+str(file01)  
+
+
+file02 <- read_delim("data/file02.csv", ";", escape_double = FALSE, 
+                     trim_ws = TRUE)
+
+
+file03 <- read_delim("data/file03.txt", "|", escape_double = FALSE, 
+                     col_types = cols(
+                       DOB = col_date(format = "%Y-%m-%d"), 
+                       Died = col_date(format = "%Y-%m-%d")
+                                    ), 
+                     trim_ws = TRUE)
+
+
+file04 <- read_table2("data/file04.fwf", 
+                     col_types = cols(
+                       DOB = col_date(format = "%Y-%m-%d"), 
+                       Died = col_date(format = "%Y-%m-%d")
+                                      )
+                     )
+
+
+file04 <- read_table("data/file04.fwf", 
+                     col_types = cols(
+                       DOB = col_date(format = "%Y-%m-%d"), 
+                       Died = col_date(format = "%Y-%m-%d")
+                                      )
+                     )
+
+# Fixed-width typeface.
+
+
+file05 <- read_delim("data/file05.tsv", "\t", 
+                    escape_double = FALSE, 
+                     col_types = cols(
+                      DOB = col_date(format = "%Y-%m-%d"), 
+                      Died = col_date(format = "%Y-%m-%d")
+                                     ), 
+                     trim_ws = TRUE)
+
+
+file06 <- read_delim("data/file06.csv", ";", escape_double = FALSE, trim_ws = TRUE)
+
+file06 <- read_delim("data/file06.csv", ";", escape_double = FALSE,
+                     col_types = cols(
+                       Name = col_character(),
+                        DOB = col_date(format = "%Ybeep%mbeep%d"),
+                         Birthplace = col_character(),
+                          Died = col_date(format = "%Ynotahyphen%mnotahyphen%d"),
+                           Occupation = col_character(),
+                            Children = col_double()
+                                    ),
+                     trim_ws = TRUE)
+
+
+```
+
+# Problem 6
+
+Remember to make comments.
+
+Import the following data:
+
+```{r problem 6, eval=FALSE, include=TRUE}
+my_url05 <- "https://perso.telecom-paristech.fr/eagan/class/igr204/data/nat1900-2017.tsv"
+
+names_fr <- readr::read_delim(my_url05, "\t")
+
+table(names_fr$sexe)
+distinct(names_fr, sexe)
+# table(names_fr$preusuel)
+# table(names_fr$annais)
+# table(names_fr$nombre)
+```
+
+
+
+Keep only females, i.e. **sexe** should be *2* . 
+
+Drop observations where **preusuel** is _PRENOMS_RARES.
+
+Some rare names don't exist some of the years. Make sure that, if a name is not registered a given year, then **nombre** should be 0, and not missing. (Hint: first use **complete()**, then use **ifelse()** in connection with **mutate()**).
+
+**sexe** should be *2* instead of missing. 
+
+Delete an observation if the name is missing. 
+
+Drop the variable **sexe**. 
+
+Delete observations if **annais** is equal to **XXXX**.
+
+```{r problem 6 solution a, eval=FALSE, include=FALSE}
+names_fr <- readr::read_delim(my_url05, "\t") %>%
+  filter(sexe == 2, !is.na(preusuel), 
+         annais != "XXXX", preusuel !="_PRENOMS_RARES") %>% 
+   complete(preusuel, annais) %>% 
+    mutate(nombre = ifelse(is.na(nombre), 0, nombre), 
+           sexe = ifelse(is.na(sexe), 2, sexe)) %>% 
+     dplyr::select(-sexe)
+
+view(names_fr)
+```
+
+Which female name has the highest frequency - a given year and all time?
+
+Keep the variables **preusuel**, **annais**, **nombre**
+
+```{r problem 6 solution b, eval=FALSE, include=FALSE}
+
+max_pr_year <- names_fr %>% 
+  group_by(annais) %>% 
+   filter(nombre == max(nombre)) %>% 
+     arrange(annais) %>% 
+      ungroup() %>% 
+       dplyr::select(preusuel, annais, nombre) # the only variables we got
+
+max_all_time <- max_pr_year %>% 
+  filter(nombre == max(nombre))
+
+
+```
+
+# Problem 7
+
+Show the number of people named **Marie** from 1900 to 2017 in a **plot**. 
+
+Make some x and y **labels**, and a **title**. 
+
+Moreover, add a **theme**.
+
+```{r problem 7, eval=FALSE, include=FALSE}
+names_fr_marie <- names_fr %>% 
+  filter(preusuel == "MARIE") 
+
+ggplot2::ggplot(data = names_fr_marie, mapping = aes(x = annais, y = nombre)) +
+ geom_point() +
+  scale_x_discrete(breaks=seq(1900, 2017, 10)) +
+   ggtitle("Marie for more than 100 years") +
+    xlab("Years") + 
+     ylab("Count") +
+      theme_bw() 
+      
+```
+
+# Problem 8
+
+Import the SPSS file: **survey.sav**, the SAS file: **x2012_1_6.sas7bdat**, and the Excel file: **excel_file**. 
+
+```{r problem 8, eval=FALSE, include=FALSE}
+
+survey <- read_sav("data/survey.sav")
+
+x2012_1_6a <- read_sas("data/x2012_1_6.sas7bdat", NULL)
+
+
+excel_file <- read_excel("data/excel_file.xlsx", 
+    col_names = FALSE)
+excel_file <- read_excel("data/excel_file.xlsx", 
+    sheet = "Number02", skip = 10)
+excel_file <- read_excel("data/excel_file.xlsx", 
+    sheet = "Number03", range = "E6:G9")
+
+```
+
+
+
+# Problem 9
+
+The following code provides ggplot of sumprice and weekday. **søndag** = Sunday is listed before **lørdag** = Saturday. I want the weekdays in the following order:
+**søndag = Sunday, lørdag = Saturday, fredag = Friday, torsdag = Thursday, onsdag = Wednesday, tirsdag = Tuesday, mandag = Monday**
+
+```{r problem 9, eval=TRUE, include=TRUE}
+
+Canteen_clean <- readRDS(file="data/Canteen_clean.Rda")
+
+ggplot(data = Canteen_clean) + 
+ geom_boxplot(mapping = aes(x = reorder(Weekday, sumprice, FUN = median), y = sumprice)) + 
+  coord_flip()
+
+
+```
+
+Make some code that will correct the order of the weekdays. And translate into English.
+
+Remember to make comments.
+
+```{r problem 9 solution, eval=FALSE, include=FALSE}
+class(Canteen_clean$Weekday)
+
+Weekday_levels <- c("mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag", "søndag")
+
+Canteen_clean_factor <- Canteen_clean %>% 
+  mutate(WeekdayF = factor(Weekday, levels = Weekday_levels))  %>%  
+   dplyr::select(WeekdayF, everything())  %>%
+    mutate(WeekdayF = fct_recode(WeekdayF,
+                               "Monday" = "mandag",
+                               "Tuesday" = "tirsdag",
+                               "Wednesday" = "onsdag",
+                               "Thursday" = "torsdag",
+                               "Friday" = "fredag",
+                               "Saturday" = "lørdag",
+                               "Sunday" = "søndag"
+  ))
+
+class(Canteen_clean_factor$WeekdayF)
+
+
+ggplot(data = Canteen_clean_factor) +
+  geom_boxplot(aes(WeekdayF, sumprice)) + 
+   coord_flip()
+
+
+
+```
+
+
+
+# Problem 10
+
+Redo the following code using the pipe **%>%** Make only one new data set.
+
+```{r problem 10, eval=FALSE, include=TRUE}
+
+popu_dest01 <- flights
+popu_dest02 <- group_by(popu_dest01, dest)
+popu_dest03 <- mutate(popu_dest02, n=n())
+popu_dest04 <- dplyr::select(popu_dest03, n, everything())
+popu_dest05 <- filter(popu_dest04, n > 10000)
+
+
+```
+
+```{r problem 10 solution, eval=FALSE, include=FALSE}
+
+one_new_data_set01 <- flights %>% 
+ group_by(dest) %>% 
+  mutate(n=n()) %>% 
+   dplyr::select(n, everything()) %>% 
+    filter(n > 10000)
+
+compare(popu_dest05, one_new_data_set01)
+
+```
+
+# Problem 11
+
+Redo the following code using the pipe **%>%** Make only one new data set.
+
+```{r problem 11, eval=FALSE, include=TRUE}
+
+one_new_data_set02 <- filter(
+                       dplyr::select(
+                        mutate(
+                         group_by(flights, dest), 
+                               n=n()), 
+                              n, everything()), 
+                             n > 10000)
+
+```
+
+```{r problem 11 solution, eval=FALSE, include=FALSE}
+
+one_new_data_set02 <- filter(dplyr::select(mutate(group_by(flights, dest), n=n()), n, everything()), n > 10000)
+
+one_new_data_set02 <- flights %>% 
+ group_by(dest) %>%
+  mutate(n=n()) %>% 
+   dplyr::select(n, everything()) %>% 
+    filter(n > 10000)
+
+  
+compare(one_new_data_set01, one_new_data_set02)
+
+```
+
+
+
+
+# Problem 12
+
+Based on **yq**, tidy up. Sort the data into chronological order.
+
+
+```{r problem 12, eval=FALSE, include=TRUE}
+yq <- tribble(
+~group, ~y, ~q1, ~q2, ~q3, ~q4,
+"a1",	2016,	25,	36,	30,	47,
+"a1",	2017,	21,	33,	37,	43,
+"a1",	2018,	22,	32,	34,	40,
+"a1",	2019,	20,	34,	30,	46,
+"a2",	2016,	22,	33,	30,	40,
+"a2",	2017,	26,	34,	31,	40,
+"a2",	2018,	23,	31,	30,	45,
+"a2",	2019,	23,	30,	36,	40,
+"a3",	2016,	20,	32,	32,	46,
+"a3",	2017,	23,	31,	37,	41,
+"a3",	2018,	27,	32,	33,	40,
+"a3",	2019,	24,	30,	31,	44)
+```
+
+```{r problem 12 solution, eval=FALSE, include=FALSE}
+
+New_yq <- yq %>% 
+  pivot_longer(cols = q1:q4,  names_to = "quarter", values_to = "sales") %>%
+   arrange(group, y, quarter)
+view(New_yq )
+```
+
+Compare your result to:
+
+```{r problem 12a , eval=FALSE, include=TRUE}
+
+yq %>% pivot_longer(cols = -c(group, y), names_to = "quarter", values_to = "sales") %>% arrange(y, quarter)
+yq %>% pivot_longer(cols = 3:6, names_to = "quarter", values_to = "sales") %>% arrange(y, quarter)
+
+```
+
+
+
+
+# Problem 13
+
+```{r problem 13 , eval=FALSE, include=TRUE}
+Canteen_data_inRformat <- readRDS(file="data/data20171001.Rda")
+Extra001 <- Canteen_data_inRformat %>% 
+  filter(!trimws(Department) %in% c(NA, "-", "")) %>% 
+  dplyr::select(-Segment, -Units01) %>% 
+  mutate(id = row_number())
+Extra002 <- Extra001 %>% 
+  filter(!(!Subsidy %in% c(" ") & Price01 < 0)) %>% 
+  filter(Price01 > 0) 
+Extra003 <- Extra001 %>% 
+  filter(!Subsidy %in% c(" ")) %>% 
+  mutate(id_extra = as.integer(id - 1)) %>% 
+  dplyr::select(-Date01, -Timofday03, -(Department:Product), -id) %>% 
+  rename(Initials_extra = Initials, Sub_extra = Subsidy, Price_extra = Price01)
+
+
+```
+
+
+Merge Extra002 and Extra003. Use SQL!
+
+Remember to make comments.  
+
+```{r problem 13 solution, eval=FALSE, include=FALSE}
+
+if (!dir.exists("ourdata")) dir.create("ourdata")
+
+connection_ourdata <- dbConnect(SQLite(), "ourdata/r_db_ex.sqlite")
+
+dbWriteTable(connection_ourdata, "Extra001", Extra001, row.names = FALSE, overwrite = TRUE)
+dbWriteTable(connection_ourdata, "Extra002", Extra002, row.names = FALSE, overwrite = TRUE)
+dbWriteTable(connection_ourdata, "Extra003", Extra003, row.names = FALSE, overwrite = TRUE)
+dbDisconnect(connection_ourdata)
+
+
+connection_ourdata <- dbConnect(SQLite(), "ourdata/r_db_ex.sqlite")
+dbListFields(connection_ourdata, "Extra001")
+dbListFields(connection_ourdata, "Extra002")
+dbListFields(connection_ourdata, "Extra003")
+dbDisconnect(connection_ourdata)
+
+connection_ourdata <- dbConnect(SQLite(), "ourdata/r_db_ex.sqlite")
+EXTRA2and3_db  <- dbGetQuery(connection_ourdata, 
+                             "select s.*, t.*
+                                from Extra002 as s 
+                                left join Extra003 as t 
+                                on s.id = t.id_extra
+                             ")
+dbDisconnect(connection_ourdata)
+
+# View(EXTRA2and3_db)   
+
+
+#Extra
+connection_ourdata <- dbConnect(SQLite(), "ourdata/r_db_ex.sqlite")
+db_Extra001 <- dbReadTable(connection_ourdata, "Extra001")
+db_Extra002 <- dbReadTable(connection_ourdata, "Extra002")
+db_Extra003 <- dbReadTable(connection_ourdata, "Extra003")
+dbDisconnect(connection_ourdata)
+
+```
+
+# Problem 14
+
+Based on Extra001, keep observations having “product” = “Pant retur” (i.e. bottle deposits). Make a summary for each employee – i.e. how many observations per employee, and how much money is paid back to 
+the employees in total. Keep only observations if the sum of Price01 is less than -10. Use SQL!  
+
+Remember to make comments.  
+
+```{r problem 14 solution, eval=FALSE, include=FALSE}
+
+connection_ourdata <- dbConnect(SQLite(), "ourdata/r_db_ex.sqlite")
+EXTRA_deposit_db <- dbGetQuery(connection_ourdata, 
+                               "select *, count(*) as no, sum(Price01) as pr
+                                from Extra001
+                                 where trim(product) = 'Pant retur'
+                                  group by Initials
+                                   having pr < -10"
+                               )
+dbDisconnect(connection_ourdata)
+```

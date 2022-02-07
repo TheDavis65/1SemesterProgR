@@ -1,0 +1,708 @@
+---
+title: "Exercises 03"
+author: "Bjarne Taulo Sørensen"
+date: "Week 5 & 6 - 2022"
+output: word_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<br />\    
+  
+  
+<!-- Your own secret notes can be written here between the HTML signs -->   
+
+
+
+```{r bibliotek, eval=TRUE, include=TRUE}
+
+if (!dir.exists("data")) dir.create("data")
+
+# Gem dine datasæt i dette bibliotek
+
+```
+
+
+```{r pacman, eval=TRUE, include=TRUE}
+
+# devtools::install_github("ekstroem/dataReporter")
+pacman::p_load("tidyverse", "magrittr", "nycflights13", "gapminder",
+              "Lahman", "maps", "lubridate", "pryr", "hms", "hexbin",
+              "feather", "htmlwidgets", "broom", "pander", "modelr",
+              "XML", "httr", "jsonlite", "lubridate", "microbenchmark",
+              "splines", "ISLR2", "MASS", "testthat", "leaps", "caret",
+              "RSQLite", "class", "babynames", "nasaweather",
+              "fueleconomy", "viridis", "boot", "devtools", "rvest",
+              "stringi", "readxl", "haven", "dataReporter")
+```
+
+
+
+<br />\   
+
+<!-- Your own secret notes can be written here between the HTML signs -->
+
+
+# Problem 1
+
+
+Make a random sample from **X201204** of 500 distinct employees. Make sure that these are not from *Afdeling=”AgroTech A/S”* and not part of the **sample01** data set.  
+
+```{r problem 1 solution, eval=FALSE, include=FALSE}
+
+sample01 <- readRDS(file="data/sample01.Rda")
+
+x201204a <- readRDS(file="data/x201204.Rda") %>% 
+  filter(!Afdeling == 'AgroTech A/S') %>% 
+   filter(!Initialer %in% sample01$Initials) %>%
+    filter(!trimws(Initialer) %in% c(NA, "-", "")) %>%
+     dplyr::select(Initialer) %>% 
+      distinct()
+
+# Solution 1
+set.seed(23)
+x201204b <- x201204a %>% 
+ mutate(xxx = sample(nrow(x201204a), size = nrow(x201204a), replace = FALSE)) %>% 
+  arrange(xxx) %>% 
+   head(500) 
+nrow(x201204b)
+
+# Solution 2 easier
+set.seed(911)
+x201204c <- x201204a %>% 
+ sample_n(50)
+nrow(x201204c)
+
+```
+
+
+# Problem 2
+
+Use SQL!  
+
+Use the **flights** data and:  
+  
+1)	**airports**, *merge* by *origin=faa*
+
+a.	keep the following variables: *year*, *month*, *day*, *carrier*, *flight*, *tailnum*, *origin*, *dest*, *distance*, *name*
+b.	condition: output if *distance* greater than 2.5 the average *distance*.
+
+2)	**planes**, *merge* i.e.
+
+c.	*merge* the total sum of *flight* for each *tailnum* from **flights** with **planes**, but only if the total sum of *flight* for a given *tailnum* is greater than 10000.
+
+3)	**weather**
+
+d.	select all variables from **flights**, but keep only observations where *origin* from **weather** starts with an E and has two additional letters.
+
+4)	**airlines**
+
+e.	select all variables from **flights**, but drop observations where *name* from **airlines** includes lines or Lines.
+
+Remember to make comments.  
+
+```{r problem 2 solution, eval=FALSE, include=FALSE}
+
+if (!dir.exists("ourdata03")) dir.create("ourdata03")
+con <- dbConnect(SQLite(), "ourdata03/flights_db.sqlite")
+
+dbWriteTable(con, "airports", airports, row.names = FALSE, overwrite = TRUE)
+dbWriteTable(con, "planes", planes, row.names = FALSE, overwrite = TRUE)
+dbWriteTable(con, "flights", flights, row.names = FALSE, overwrite = TRUE)
+dbWriteTable(con, "weather", weather, row.names = FALSE, overwrite = TRUE)
+dbWriteTable(con, "airlines", airlines, row.names = FALSE, overwrite = TRUE)
+
+dbListTables(con)
+
+# 1
+
+flights_airports <- dbGetQuery(con, 
+                               "select s.year, s.month, s.day, s.carrier, s.flight, 
+                                 s.tailnum, s.origin, s.dest, s.distance, t.name
+                                  from flights as s
+                                   left join 
+                                    airports as t
+                                     on s.origin = t.faa
+                                      where s.distance > (select 2.5*avg(distance) from flights)
+                               ")
+
+# 2
+
+flights_planes <- dbGetQuery(con,
+                             "select s.*, t.* from 
+                               (select tailnum, sum(flight) as sumflight from flights 
+                                group by tailnum
+                                 having sumflight > 10000) as s
+                                  left join 
+                                   planes as t
+                                    on s.tailnum=t.tailnum
+                             ")
+
+# 3
+
+flights_weather <- dbGetQuery(con,
+                              "select *
+                                from flights
+                                 where trim(origin) in (select distinct origin 
+                                  from weather where trim(origin) like 'E__')
+                              ")
+
+# 4
+
+flights_airlines <- dbGetQuery(con,
+                               "select *
+                                 from flights
+                                  where trim(carrier) not in (select distinct carrier 
+                                   from airlines where trim(name) like '%lines%' or 
+                                    trim(name) like '%Lines%')
+                               ")
+```
+
+
+
+# Problem 3
+
+Make comments to the following code:
+
+```{r problem 3, eval=FALSE, include=TRUE}
+
+Hide <- function(x){
+	cat("You entered the following number:", x)
+ 	invisible(x^1 + x^2 + x^3 + x^4 + x^5)
+ }
+
+Hide(2)
+y <- Hide(2)
+y
+
+```
+
+# Problem 4
+
+Make comments to the following code:
+
+```{r problem 4, eval=FALSE, include=TRUE}
+
+set.seed(123)
+y <- stats::rnorm(10000000)
+table(cut(y, breaks = -6:6))
+
+```
+
+
+
+# Problem 5
+
+What is the difference: 
+
+```{r problem 5, eval=FALSE, include=TRUE}
+
+# I
+
+show_missings <- function(df) {
+  n <- sum(is.na(df))
+  cat("Missing values: ", n, "\n", sep = "")
+  invisible(df)
+}
+
+mtcars %>% 
+  show_missings() %>%  
+  mutate(mpg = ifelse(mpg < 20, NA, mpg)) %>% 
+  show_missings() 
+
+
+# II
+
+show_missings_II <- function(df) {
+  n <- sum(is.na(df))
+  cat("Missing values: ", n, "\n", sep = "")
+}
+
+mtcars %>% 
+  show_missings_II() %>%  
+  mutate(mpg = ifelse(mpg < 20, NA, mpg)) %>% 
+  show_missings_II() 
+
+
+
+```
+
+
+# Problem 6
+
+Use *strsplit* to split the strings and make each part accessible. Moreover, make the data tidy.
+Finally, make sure you end up with a *tibble*. Again, remember to make comments.
+
+```{r problem 6, eval=FALSE, include=TRUE}
+
+car_french <- c("Product, Peugeot 108, Quantity, 2000, Year, 2019",
+                "Product, Peugeot 108, Price, 20000, Year, 2019",
+                "Product, Peugeot 208, Quantity, 1810, Year, 2018",
+                "Product, Peugeot 208, Price, 23400, Year, 2018",
+                "Product, Peugeot 308, Quantity, 1005, Year, New",
+                "Product, Peugeot 308, Price, 32500, Year, New"
+                ) 
+
+```
+
+```{r problem 6 solution, eval=FALSE, include=FALSE}
+
+car_french01 <- as_tibble(do.call(rbind, strsplit(car_french, ", ", fixed=TRUE))) %>% 
+  pivot_wider(names_from = V3, values_from = V4 ) %>% 
+    rename(Product = V2, Year = V6) %>% 
+      dplyr::select(Product, Year, Price, Quantity) %>% 
+       mutate(Year = parse_double(ifelse(trimws(Year) == "New", 2020, Year)), 
+        Price = parse_double(Price), Quantity = parse_double(Quantity))  
+
+car_french01
+
+str(car_french01)
+
+```
+
+
+# Problem 7
+
+Please make a new similar program without using SQL. Assume that the data set **diamonds**
+exists outside the data base. Again, remember to make comments.
+
+```{r problem 7, eval=FALSE, include=TRUE}
+
+db_diamonds <- dbGetQuery(con,
+ "select *, price / size as value_density from
+ (select carat, price, x * y * z as size from diamonds)"
+ )
+
+head(db_diamonds, 3)
+
+```
+
+```{r problem 8 solution, eval=FALSE, include=FALSE}
+
+diamonds01 <- diamonds %>% 
+ mutate(size = x*y*z, value_density = price/size) %>% 
+  dplyr::select(carat, price, size, value_density) %>% 
+   head(3)
+
+```
+
+# Problem 9
+
+Use the functions **semi_join()** and **anti_join()** instead of the first two **filter()** functions.
+
+```{r problem 9, eval=FALSE, include=TRUE}
+
+sample01 <- readRDS(file="data/sample01.Rda")
+sample02 <- readRDS(file="data/sample02.Rda")
+
+x1 <- readRDS(file="data/x201205.Rda") %>% 
+ filter(Initialer %in% sample02$Initials) %>%
+  filter(!Initialer %in% sample01$Initials) %>%
+   filter(!trimws(Initialer) %in% c(NA, "-", "")) %>%
+    dplyr::select(Initialer) %>% 
+     distinct()
+
+nrow(x1)
+
+
+```
+
+```{r problem 9 solution, eval=FALSE, include=FALSE}
+
+sample01 <- readRDS(file="data/sample01.Rda")
+sample02 <- readRDS(file="data/sample02.Rda")
+
+x2 <- readRDS(file="data/x201205.Rda") %>% 
+ semi_join(sample02, by = c("Initialer"="Initials")) %>% 
+  anti_join(sample01, by = c("Initialer"="Initials")) %>% 
+   filter(!trimws(Initialer) %in% c(NA, "-", "")) %>%
+    dplyr::select(Initialer) %>% 
+     distinct()
+
+nrow(x2)
+
+identical(x1, x2)
+
+```
+
+Remember to make comments. 
+
+# Problem 10
+
+Append **a** and **b**, **a** and **c**, and **a** and **d**:
+
+```{r problem 10, eval=FALSE, include=TRUE}
+
+a <- tribble(
+  ~key, ~val_x,
+  1, "x1",
+  2, "x2",
+  3, "x3",
+  4, "x4"
+)
+
+b <- tribble(
+  ~key, ~val_y,
+  1, "y1",
+  2, "y2"
+)
+
+c <- tribble(
+  ~key, ~val_x,
+  1, "z1",
+  2, "z2",
+  3, "z3",
+  4, "z4"
+)
+
+d <- tribble(
+  ~key, ~val_x,
+  1, "x1",
+  2, "x2",
+  3, "x3",
+  4, "x4"
+)
+
+```
+
+Remember to make comments. 
+```{r, problem 10 solution, eval=FALSE, include=FALSE}
+
+dplyr::union_all(a, b)
+dplyr::union_all(a, c)
+dplyr::union_all(a, d)
+  
+
+dplyr::union(a, b) # Not!
+dplyr::union(a, c)
+dplyr::union(a, d)
+```
+
+
+# Problem 11
+
+Please make a new similar program without using the *switch()* function. Again, remember to make
+comments.
+
+```{r problem 11, eval=FALSE, include=TRUE}
+
+MMSD <- function(y, tp) {
+                    switch(tp, mean = mean(y), 
+                               median = median(y), 
+                               sd = sd(y)
+                           )
+                         }  
+y<-c(1, 4, 3, 7, 5, 9, 7, 3, 9, 1, 12)
+
+MMSD(y, "mean")
+MMSD(tp="mean", y=y)
+MMSD(y, "MEDIAN")
+
+```
+
+```{r problem 11 solution, eval=FALSE, include=FALSE}
+
+MMSD2 <- function(y, tp) {
+          if (tp == "mean") {
+             mean(y)
+          } else if (tp == "median") {
+             median(y)
+          } else if (tp == "sd")  {
+             sd(y)
+          } #else {
+            # stop("Unknown type of operation")   
+         # }
+}
+
+y<-c(1, 4, 3, 7, 5, 9, 7, 3, 9, 1, 12)
+  
+MMSD2(y, "mean")
+MMSD2(y, "MEDIAN")
+
+```
+
+
+# Problem 12
+
+Make comments to the following code:
+
+```{r problem 12, eval=FALSE, include=TRUE}
+
+bts <- c("XXXXXXbla-19960101T000000Z-1.tsv",
+         "XXXXXXbla-19960101T000000Z-2.tsv", "XXXXXXbla-19960101T000000Z-3.tsv")
+
+ Datafr <- data.frame(do.call(rbind, strsplit(bts, "-", fixed=TRUE)))
+  Datafr[,2] <- as.Date(Datafr[,2] , format="%Y%m%d")
+   Datafr[,3] <- as.integer(gsub(".tsv", "", Datafr[,3], fixed=TRUE))
+
+```
+
+
+# Problem 13
+
+The data set **Exam** needs some cleaning up. First, remove observations if **idnumber02** is missing unless the employee is a woman, i.e. **Male=2**. Next, remove an observation if the employee is older than *68* (**Age**), or **Initials** contain a number. Call this new data set for **Exam3**.
+
+Remember to make comments.  
+
+```{r problem 13 solution, eval=FALSE, include=FALSE}
+exam <- readRDS(file="data/exam.Rda")
+    
+exam_a <- exam[complete.cases(exam[ , 5]),]
+
+exam_b <- exam %>% 
+ filter(Male==2)
+
+Exam3 <- rbind(exam_a, exam_b) %>% 
+   distinct() %>% 
+    filter(Age < 68) %>%  # accept 69 also 
+     filter(!str_detect(initials, "[[:digit:]]"))
+View(Exam3)
+
+```
+
+# Problem 14
+
+Make comments to the following code:
+
+```{r problem 14 , eval=FALSE, include=TRUE}
+
+data_vector = c(9, 0.2, 5, 1, 23, 7, 2, 2, 5, .53) 
+ categories = cut(data_vector, breaks=c(0,1,5,max(data_vector)), right = TRUE) 
+  categories
+   class(categories)
+    typeof(categories)
+     table(categories) 
+      levels(categories) = c("Good","Better","Best")
+       table(categories)
+     
+```
+
+# Problem 15
+
+Remember to make comments.  
+
+
+First, extract the 2nd column from the list of matrices (i.e. from each matrix).
+
+Next, extract the 3rd row from the list of matrices.
+
+Hint: use lapply and [.
+
+```{r problem 15, eval=FALSE, include=TRUE}
+
+x1 <- matrix(1:30, 3)
+x2 <- matrix(2:22, 3)
+x3 <- matrix(117:143, 3)
+x4 <- matrix(66:95, 5)
+list_of_matrices = list(x1, x2, x3, x4)
+list_of_matrices
+```
+
+```{r problem 15 solution, eval=FALSE, include=FALSE}
+
+lapply(list_of_matrices,"[", , 2)
+lapply(list_of_matrices,"[", 3, )
+
+?'['
+```
+
+
+# Problem 16
+
+Make comments to the following code:
+
+```{r problem 16, eval=FALSE, include=TRUE}
+
+apply(iris[,1:4], 2, boxplot)
+
+
+round(apply(ggplot2::diamonds[10000:11000, 8:10], 2, mean), 1)
+
+purrr::flatten_dbl(purrr::map(-2:2, rnorm, n = 6))
+
+?rnorm
+?flatten_dbl
+purrr::map(-2:2, rnorm, sd = 2, n = 6)
+```
+
+
+# Problem 17
+
+Make a program that rolls a die multiple times. The loop should continue until you get 8 sixes in a row. Calculate the total number of rolls. 
+
+Remember to make comments.  
+
+```{r problem 17 solution, eval=FALSE, include=FALSE}
+
+roll_die <- function() sample(c("One", "Two", "Three", "Four", "Five", "Six"), 1)
+
+total <- 0
+n_six <- 0
+
+while (n_six < 8) { 
+  if (roll_die() == "Six") { 
+    n_six <- n_six + 1
+  } else {
+    n_six <- 0
+  }
+  total <- total + 1
+}
+
+total
+
+```
+
+
+# Problem 18
+
+Make a function that checks if a word is uppercase:
+
+Remember to make comments.  
+
+```{r problem 18, eval=FALSE, include=FALSE}
+
+upper <- function(x) {
+  str_detect(x, "^[:upper:]+$")
+}
+
+rfba <- c("business", "BUSINESS", "BusinesS", "")
+upper(rfba)
+
+```
+
+
+# Problem 19
+
+Make comments to the following code:
+
+```{r problem 19, eval=FALSE, include=TRUE}
+
+string_rfba <- "11 april 2020"
+regexp <- "([[:digit:]]{2}) ([[:alpha:]]+) ([[:digit:]]{4})"
+x <- sub(regexp, "\\1", string_rfba)
+y <- sub(regexp, "\\2", string_rfba) 
+z <- sub(regexp, "\\3", string_rfba) 
+
+```
+
+
+# Problem 20
+
+Remember to make comments.  
+
+```{r problem 20, eval=FALSE, include=TRUE}
+
+mtcars %>%
+  split(.$cyl) %>%
+  purrr::map(~ lm(mpg ~ wt, data = .)) %>%
+  purrr::map(summary) %>%
+  purrr::map_dbl("r.squared")
+
+?split
+```
+
+
+Remember to make comments. 
+
+# Problem 21
+
+Make comments to the following code:
+
+```{r problem 21, eval=FALSE, include=TRUE}
+
+geoms_bts = list(
+  geom_point(),
+  geom_line(),
+  geom_smooth())
+
+ggplot(mtcars, aes(hp, mpg)) + geoms_bts
+
+```
+
+
+
+# Problem 22
+
+Below, I have created a vector of all the mean values of all the columns of mtcars. Make some new code that uses a for loop to create the means. Can you also use lapply, sapply, purrr::map, map_lgl, map_int, map_dbl, and map_chr?
+
+
+```{r problem 22, eval=FALSE, include=TRUE}
+vectors_of_means <- c(mean(mtcars$mpg), mean(mtcars$cyl), 
+                      mean(mtcars$disp), mean(mtcars$hp),
+                      mean(mtcars$drat), mean(mtcars$wt), 
+                      mean(mtcars$qsec), mean(mtcars$vs),
+                      mean(mtcars$am), mean(mtcars$gear), 
+                      mean(mtcars$carb))
+```
+
+
+```{r problem 22 solution, eval=FALSE, include=FALSE}
+loop_vector_means <- vector("double", ncol(mtcars))
+
+for (i in seq_along(mtcars)) {
+  loop_vector_means[[i]] <- mean(mtcars[[i]])
+}
+
+loop_vector_means
+
+identical(loop_vector_means, vectors_of_means)
+
+#
+
+lapply(mtcars, mean)
+unlist(lapply(mtcars, mean))
+
+sapply(mtcars, mean)
+
+identical(unlist(lapply(mtcars, mean)), sapply(mtcars, mean))
+
+#
+
+purrr::map(mtcars, mean)
+identical(purrr::map(mtcars, mean), lapply(mtcars, mean))
+
+#
+
+map_int(mtcars, mean)
+map_lgl(mtcars, mean)
+map_dbl(mtcars, mean)
+map_chr(mtcars, mean)
+
+
+map_dbl(ggplot2::txhousing, mean)
+map_dbl(ggplot2::txhousing, mean, na.rm = TRUE)
+summary(ggplot2::txhousing)
+
+  
+txhousing01 <- ggplot2::txhousing %>% 
+ dplyr::select(-date, -median) %>% 
+  group_by(year, month) %>%
+   summarise_if(is.numeric, tibble::lst(mean, median), na.rm = TRUE) 
+
+
+```
+
+
+# Problem 23
+
+Make some code that produces the following output:
+
+```{r problem 23, echo=FALSE}
+
+(Letters_matrix <- matrix(1:9, nrow=3, dimnames = list(letters[1:3], LETTERS[1:3])))
+
+```
+
+Remember to make comments. 
+
+```{r, problem 23 solution, eval=FALSE, include=FALSE}
+
+Letters_matrix <- matrix(1:9, nrow=3, dimnames = list(letters[1:3], LETTERS[1:3]))
+Letters_matrix
+
+```
+
+
